@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;600&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #f4f7f4;
+  color: #222;
+  min-height: 100vh;
+}
+
+header {
+  background: #1f7a3a;
+  color: white;
+  padding: 40px 28px;
+  text-align: center;
+}
+
+header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 42px;
+  margin-bottom: 10px;
+}
+
+header p {
+  font-size: 16px;
+  opacity: 0.9;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+main {
+  max-width: 800px;
+  margin: 50px auto;
+  padding: 0 24px;
+}
+
+main h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  color: #1f7a3a;
+  margin-bottom: 24px;
+}
+
+.endpoint-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+  border-left: 5px solid #1f7a3a;
+}
+
+.method {
+  background: #1f7a3a;
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  min-width: 60px;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.endpoint-info h3 {
+  font-size: 18px;
+  margin-bottom: 6px;
+  color: #111;
+}
+
+.endpoint-info p {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.endpoint-info a {
+  font-family: monospace;
+  font-size: 15px;
+  color: #1f7a3a;
+  font-weight: 600;
+  text-decoration: none;
+  background: #e8f5ed;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.endpoint-info a:hover {
+  background: #d0ebd9;
+}
+
+footer {
+  text-align: center;
+  padding: 30px;
+  font-size: 13px;
+  color: #888;
+}
