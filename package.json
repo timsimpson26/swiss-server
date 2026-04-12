@@ -20,6 +20,7 @@
   "homepage": "https://github.com/timsimpson26/swiss-server#readme",
   "dependencies": {
     "cors": "^2.8.6",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "joi": "^18.1.2"
   }
 }
