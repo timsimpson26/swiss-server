@@ -21,7 +21,6 @@ let items = [
   { _id: 8, title: "Swiss Flag Souvenir", category: "Souvenir", price: 6.50, description: "Classic Swiss flag keepsake souvenir." },
 ];
 
-// Joi validation schema
 const itemSchema = Joi.object({
   title: Joi.string().min(2).max(100).required(),
   category: Joi.string().min(2).max(50).required(),
@@ -34,7 +33,7 @@ app.get("/api/items", (req, res) => {
   res.json(items);
 });
 
-// GET single item by id
+// GET single item
 app.get("/api/items/:id", (req, res) => {
   const item = items.find((i) => i._id === parseInt(req.params.id));
   if (!item) return res.status(404).json({ error: "Item not found" });
@@ -56,6 +55,31 @@ app.post("/api/items", (req, res) => {
 
   items.push(newItem);
   res.status(201).json(newItem);
+});
+
+// PUT update item
+app.put("/api/items/:id", (req, res) => {
+  const item = items.find((i) => i._id === parseInt(req.params.id));
+  if (!item) return res.status(404).json({ error: "Item not found" });
+
+  const { error } = itemSchema.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  item.title = req.body.title;
+  item.category = req.body.category;
+  item.price = parseFloat(req.body.price);
+  item.description = req.body.description;
+
+  res.json(item);
+});
+
+// DELETE item
+app.delete("/api/items/:id", (req, res) => {
+  const index = items.findIndex((i) => i._id === parseInt(req.params.id));
+  if (index === -1) return res.status(404).json({ error: "Item not found" });
+
+  items.splice(index, 1);
+  res.json({ message: "Item deleted successfully" });
 });
 
 // Fallback
