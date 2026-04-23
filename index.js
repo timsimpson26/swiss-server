@@ -1,88 +1,133 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const Joi = require("joi");
+const mongoose = require("mongoose");
+const multer = require("multer");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Connect to MongoDB
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.error("MongoDB connection error:", err));
+
+// Multer
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are allowed"));
+  },
+});
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-let items = [
-  { _id: 1, title: "Matterhorn Poster", category: "Poster", price: 19.99, description: "A stunning high-resolution poster of the iconic Matterhorn." },
-  { _id: 2, title: "Swiss Chocolate Gift Box", category: "Food", price: 14.50, description: "Assorted premium Swiss chocolates from local chocolatiers." },
-  { _id: 3, title: "Lucerne Landscape Print", category: "Print", price: 12.00, description: "A beautiful print of Lake Lucerne at sunrise." },
-  { _id: 4, title: "Alpine Hiking Map", category: "Map", price: 8.75, description: "Detailed hiking map of Switzerland's most scenic alpine routes." },
-  { _id: 5, title: "Mini Swiss Cuckoo Clock", category: "Souvenir", price: 24.99, description: "Traditional handcrafted mini cuckoo clock." },
-  { _id: 6, title: "Swiss Travel Guide", category: "Guide", price: 9.99, description: "Complete travel guide for exploring Switzerland." },
-  { _id: 7, title: "Interlaken Adventure Booklet", category: "Booklet", price: 5.99, description: "Discover adventure activities in Interlaken." },
-  { _id: 8, title: "Swiss Flag Souvenir", category: "Souvenir", price: 6.50, description: "Classic Swiss flag keepsake souvenir." },
-];
+// Schema
+const itemSchema = new mongoose.Schema({
+  title:       { type: String, required: true },
+  category:    { type: String, required: true },
+  price:       { type: Number, required: true },
+  description: { type: String, required: true },
+  image:       { type: String }, // base64 string
+});
 
-const itemSchema = Joi.object({
-  title: Joi.string().min(2).max(100).required(),
-  category: Joi.string().min(2).max(50).required(),
-  price: Joi.number().min(0.01).max(9999).required(),
+const Item = mongoose.model("Item", itemSchema);
+
+const joiSchema = Joi.object({
+  title:       Joi.string().min(2).max(100).required(),
+  category:    Joi.string().min(2).max(50).required(),
+  price:       Joi.number().min(0.01).max(9999).required(),
   description: Joi.string().min(5).max(500).required(),
+  image:       Joi.string().allow("", null).optional(),
 });
 
 // GET all items
-app.get("/api/items", (req, res) => {
-  res.json(items);
+app.get("/api/items", async (req, res) => {
+  try {
+    const items = await Item.find();
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch items" });
+  }
 });
 
 // GET single item
-app.get("/api/items/:id", (req, res) => {
-  const item = items.find((i) => i._id === parseInt(req.params.id));
-  if (!item) return res.status(404).json({ error: "Item not found" });
-  res.json(item);
+app.get("/api/items/:id", async (req, res) => {
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) return res.status(404).json({ error: "Item not found" });
+    res.json(item);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch item" });
+  }
 });
 
-// POST new item
-app.post("/api/items", (req, res) => {
-  const { error } = itemSchema.validate(req.body);
-  if (error) return res.status(400).json({ error: error.details[0].message });
-
-  const newItem = {
-    _id: items.length > 0 ? Math.max(...items.map((i) => i._id)) + 1 : 1,
-    title: req.body.title,
-    category: req.body.category,
-    price: parseFloat(req.body.price),
+// POST new item 
+app.post("/api/items", upload.single("image"), async (req, res) => {
+  const body = {
+    title:       req.body.title,
+    category:    req.body.category,
+    price:       parseFloat(req.body.price),
     description: req.body.description,
+    image:       req.file
+      ? `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`
+      : "",
   };
 
-  items.push(newItem);
-  res.status(201).json(newItem);
-});
-
-// PUT update item
-app.put("/api/items/:id", (req, res) => {
-  const item = items.find((i) => i._id === parseInt(req.params.id));
-  if (!item) return res.status(404).json({ error: "Item not found" });
-
-  const { error } = itemSchema.validate(req.body);
+  const { error } = joiSchema.validate(body);
   if (error) return res.status(400).json({ error: error.details[0].message });
 
-  item.title = req.body.title;
-  item.category = req.body.category;
-  item.price = parseFloat(req.body.price);
-  item.description = req.body.description;
+  try {
+    const newItem = await Item.create(body);
+    res.status(201).json(newItem);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to create item" });
+  }
+});
 
-  res.json(item);
+// UPDATE item 
+app.put("/api/items/:id", upload.single("image"), async (req, res) => {
+  const body = {
+    title:       req.body.title,
+    category:    req.body.category,
+    price:       parseFloat(req.body.price),
+    description: req.body.description,
+    image:       req.file
+      ? `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`
+      : req.body.image || "",
+  };
+
+  const { error } = joiSchema.validate(body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  try {
+    const updated = await Item.findByIdAndUpdate(req.params.id, body, { new: true });
+    if (!updated) return res.status(404).json({ error: "Item not found" });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update item" });
+  }
 });
 
 // DELETE item
-app.delete("/api/items/:id", (req, res) => {
-  const index = items.findIndex((i) => i._id === parseInt(req.params.id));
-  if (index === -1) return res.status(404).json({ error: "Item not found" });
-
-  items.splice(index, 1);
-  res.json({ message: "Item deleted successfully" });
+app.delete("/api/items/:id", async (req, res) => {
+  try {
+    const deleted = await Item.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Item not found" });
+    res.json({ message: "Item deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete item" });
+  }
 });
 
-// Fallback
 app.get("/{*path}", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
